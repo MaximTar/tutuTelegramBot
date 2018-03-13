@@ -5,75 +5,74 @@ package com.github.tututelegrambot;
  */
 
 import org.telegram.telegrambots.api.methods.send.SendMessage;
+import org.telegram.telegrambots.api.objects.Location;
 import org.telegram.telegrambots.api.objects.Update;
+import org.telegram.telegrambots.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TutuTelegramBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()).setText("Hello!");
-            if (update.getMessage().getText().equals("/markup")) {
-                SendMessage message = new SendMessage()
-                        .setChatId(update.getMessage().getChatId())
-                        .setText("Here is your keyboard");
-                // Create ReplyKeyboardMarkup object
-                ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-                // Create the keyboard (list of keyboard rows)
-                List<KeyboardRow> keyboard = new ArrayList<>();
-                // Create a keyboard row
-                KeyboardRow row = new KeyboardRow();
-//                // Set each button, you can also use KeyboardButton objects if you need something else than text
-//                row.add("Row 1 Button 1");
-//                row.add("Row 1 Button 2");
-//                row.add("Row 1 Button 3");
-//                // Add the first row to the keyboard
-//                keyboard.add(row);
-//                // Create another keyboard row
-//                row = new KeyboardRow();
-//                // Set each button for the second line
-//                row.add("Row 2 Button 1");
-//                row.add("Row 2 Button 2");
-//                row.add("Row 2 Button 3");
-//                // Add the second row to the keyboard
-//                keyboard.add(row);
+        SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()); //.setText("Hello!");
+        if (update.hasMessage()) {
+            if (update.getMessage().hasText()) {
+                if (update.getMessage().getText().equals("/markup")) {
+                    ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+                    List<KeyboardRow> keyboard = new ArrayList<>();
+                    KeyboardRow row = new KeyboardRow();
+                    KeyboardButton geoButton = new KeyboardButton("Get Location");
+                    geoButton.setRequestLocation(true);
 
-                KeyboardButton geoButton = new KeyboardButton("Get Location");
-                geoButton.setRequestLocation(true);
-
-                // Set the keyboard to the markup
-                row.add(geoButton);
-                keyboard.add(row);
-                keyboardMarkup.setKeyboard(keyboard);
-                // Add it to the message
-                message.setReplyMarkup(keyboardMarkup);
-                try {
-                    sendMessage(message); // Sending our message object to user
-                } catch (TelegramApiException e) {
-                    e.printStackTrace();
+                    row.add(geoButton);
+                    keyboard.add(row);
+                    keyboardMarkup.setKeyboard(keyboard);
+                    sendMessage.setReplyMarkup(keyboardMarkup);
+                } else {
+                    // TODO
                 }
             }
             else if (update.getMessage().hasLocation()) {
-                System.out.println("HELLO");
+                // TODO CHECK THAT IT IS USER LOCATION, NOT THE OTHER ONE
+                Location location = update.getMessage().getLocation();
+                String latLon = location.getLatitude().toString() + "," + location.getLongitude().toString();
+                try {
+                    List<String> places = JsonHandler.autocomplete("парк культуры", latLon);
+                    InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+                    List<List<InlineKeyboardButton>> keyboardButtons = new ArrayList<>();
+                    for (int i = 0; i < places.size(); i++) {
+                        List<InlineKeyboardButton> row = new ArrayList<>();
+//                        row.add(new InlineKeyboardButton(place).setUrl(place));
+                        row.add(new InlineKeyboardButton(places.get(i)).setCallbackData(Integer.toString(i)));
+                        keyboardButtons.add(row);
+                    }
+                    inlineKeyboardMarkup.setKeyboard(keyboardButtons);
+                    sendMessage.setText("Давай уточним");
+                    sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            else {
+                System.out.println(update);
                 System.out.println(update.getMessage());
-                sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()).setText(update.getMessage().getLocation().toString());
             }
-//            SendMessage message = new SendMessage()
-//                    .setChatId(update.getMessage().getChatId())
-//                    .setText(update.getMessage().getText());
-//            SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()).setText("Hello!");
-            try {
-                execute(sendMessage);
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
-            }
+        }
+        else {
+            // TODO
+        }
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
         }
     }
 
