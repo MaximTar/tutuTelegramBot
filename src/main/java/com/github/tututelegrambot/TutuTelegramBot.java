@@ -28,7 +28,7 @@ class TutuTelegramBot extends TelegramLongPollingBot {
     private static int branchIndicator = 0;
     private static String destination;
     private static String latLon;
-    private final static int ROW_SIZE = 40;
+    final static int ROW_SIZE = 40;
 
     @Override
     public void onUpdateReceived(Update update) {
