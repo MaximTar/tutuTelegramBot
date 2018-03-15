@@ -1,35 +1,70 @@
 package com.github.tututelegrambot;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by maxtar on 14.03.18.
  */
-public class Utils {
+class Utils {
 
-    public static String addNewLineSymbols(String input) {
+    private final static int ROW_SIZE = 35;
+
+    // this function was written for InlineKeyboardMarkup
+    // but InlineKeyboardMarkup doesn't suit, because of long text
+    // left it here just in case
+    static String addNewLineSymbols(String input) {
         String output = "";
+        String line = "";
+        String word = "";
 
         boolean isWord = false;
         int endOfLine = input.length() - 1;
-        String word = "";
 
         for (int i = 0; i < input.length(); i++) {
-            // if the char is a letter, word = true.
+            if (i != 0 && i % ROW_SIZE == 0) {
+                if (line.startsWith(" ")) {
+                    line = line.substring(1);
+                }
+                output += line + "\n";
+                line = "";
+            }
             if (Character.isLetter(input.charAt(i)) && i != endOfLine) {
                 isWord = true;
                 word += input.charAt(i);
-                // if char isn't a letter and there have been letters before,
-                // counter goes up.
-            } else if (!Character.isLetter(input.charAt(i)) && isWord) {
-                output += word + input.charAt(i);
-                isWord = false;
-                word = "";
-                // last word of String; if it doesn't end with a non letter, it
-                // wouldn't count without this.
+            } else if (!Character.isLetter(input.charAt(i))) {
+                if (isWord) {
+                    line += word + input.charAt(i);
+                    isWord = false;
+                    word = "";
+                } else {
+                    line += input.charAt(i);
+                }
             } else if (Character.isLetter(input.charAt(i)) && i == endOfLine) {
-                output += word + input.charAt(i);
+                line += word + input.charAt(i);
             }
         }
+        if (line.startsWith(" ")) {
+            line = line.substring(1);
+        }
+        output += line;
 
         return output;
+    }
+
+    static List<String> getStepsFromRoute(JSONObject route) {
+        List<String> listOfSteps = new ArrayList<>();
+        JSONArray steps = route.getJSONArray("routes").getJSONObject(0).getJSONArray("legs")
+                .getJSONObject(0).getJSONArray("steps");
+        for (int i = 0; i < steps.length(); i++) {
+            String duration = steps.getJSONObject(i).getJSONObject("duration").getString("text");
+            String distance = steps.getJSONObject(i).getJSONObject("distance").getString("text");
+            String instruction = steps.getJSONObject(i).getString("html_instructions");
+            listOfSteps.add(instruction + "(" + duration + " или " + distance + ")");
+        }
+        return listOfSteps;
     }
 }
