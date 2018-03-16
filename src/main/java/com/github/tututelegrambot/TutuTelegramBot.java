@@ -85,13 +85,18 @@ class TutuTelegramBot extends TelegramLongPollingBot {
                         }
                         break;
                     case 2:
+                        if (message.hasText()) {
+                            secondCase(message, sendMessage);
+                        } else {
+                            // TODO
+                        }
                         break;
                     case 3:
                         if (message.hasText()) {
                             if (Objects.equals(message.getText(), walking)
                                     || Objects.equals(message.getText(), transit)) {
                                 thirdCase(message, sendMessage);
-                            } else if (Objects.equals(message.getText(), changeMode)){
+                            } else if (Objects.equals(message.getText(), changeMode)) {
                                 walkingOrTransit(message, sendMessage);
                             } else if (Objects.equals(message.getText(), stepByStep)) {
                                 showRouteStepByStep(sendMessage);
@@ -152,7 +157,7 @@ class TutuTelegramBot extends TelegramLongPollingBot {
 
     private void caseIDontKnow(SendMessage sendMessage) {
         branchIndicator = 2;
-        sendMessage.setText("В разработке.")
+        sendMessage.setText("Какие пожелания?") // todo change text
                 .setReplyMarkup(new ReplyKeyboardRemove());
         sendMsg(sendMessage);
     }
@@ -161,7 +166,7 @@ class TutuTelegramBot extends TelegramLongPollingBot {
         destination = message.getText();
         if (latLon != null) {
             try {
-                places = JsonHandler.autocomplete(destination, latLon);
+                places = GoogleApiHandler.autocomplete(destination, latLon);
                 List<KeyboardRow> keyboard = new ArrayList<>();
                 for (String place : places) {
                     KeyboardRow row = new KeyboardRow();
@@ -181,6 +186,28 @@ class TutuTelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void secondCase(Message message, SendMessage sendMessage) {
+        String keyword = message.getText();
+        if (latLon != null) {
+            try {
+                List<String> placesIds = GoogleApiHandler.nearbySearch(keyword, latLon);
+                List<KeyboardRow> keyboard = new ArrayList<>();
+                for (String placeId : placesIds) {
+                    KeyboardRow row = new KeyboardRow();
+                    String place = GoogleApiHandler.placeDetailsById(placeId);
+                    row.add(place);
+                    keyboard.add(row);
+                }
+                ReplyKeyboardMarkup replyKeyboardMarkup = createOneTimeReplyKeyboardMarkup(keyboard);
+                sendMessage.setReplyMarkup(replyKeyboardMarkup);
+                sendMessage.setText("Поблизости найдены следующие места:");
+                sendMsg(sendMessage);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void thirdCase(Message message, SendMessage sendMessage) {
         String mode = message.getText();
         if (latLon != null) {
@@ -192,7 +219,7 @@ class TutuTelegramBot extends TelegramLongPollingBot {
                 } else {
                     // TODO
                 }
-                route = JsonHandler.createRoute(destination, latLon, mode);
+                route = GoogleApiHandler.createRoute(destination, latLon, mode);
                 JSONObject location = route.getJSONArray("routes").getJSONObject(0)
                         .getJSONArray("legs").getJSONObject(0);
                 final String distance = location.getJSONObject("distance").getString("text");
@@ -226,7 +253,7 @@ class TutuTelegramBot extends TelegramLongPollingBot {
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         sendMsg(sendMessage);
         try {
-            float[] location = JsonHandler.geocode(destination);
+            float[] location = GoogleApiHandler.geocoding(destination);
             SendLocation sendLocation = new SendLocation(location[0], location[1]).setChatId(message.getChatId());
             sendMsg(sendLocation);
         } catch (IOException e) {
